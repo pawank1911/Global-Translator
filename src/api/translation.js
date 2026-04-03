@@ -1,11 +1,13 @@
+import { getApiErrorMessage, parseApiResponse } from './response';
+
 const RAPIDAPI_KEY = import.meta.env.VITE_RAPIDAPI_KEY;
 const RAPIDAPI_HOST = import.meta.env.VITE_RAPIDAPI_HOST;
 const RAPIDAPI_URL = import.meta.env.VITE_RAPIDAPI_URL;
 
 export const translateText = async (text, targetLanguage, sourceLanguage = 'auto') => {
   if (!text.trim()) return '';
-  if (RAPIDAPI_KEY === 'YOUR_RAPID_API_KEY') {
-    throw new Error('Please enter your RapidAPI key in src/api/translation.js');
+  if (!RAPIDAPI_KEY || !RAPIDAPI_HOST || !RAPIDAPI_URL) {
+    throw new Error('Please add your translation RapidAPI settings to your .env file.');
   }
 
   const payload = {
@@ -28,10 +30,21 @@ export const translateText = async (text, targetLanguage, sourceLanguage = 'auto
       body: JSON.stringify(payload)
     });
 
-    const responseData = await response.json();
+    const { data: responseData, rawBody } = await parseApiResponse(response);
 
     if (!response.ok) {
-        throw new Error(responseData.message || responseData.Error || 'Translation API returned an error');
+      throw new Error(
+        getApiErrorMessage({
+          response,
+          data: responseData,
+          rawBody,
+          fallbackMessage: 'Translation API returned an error'
+        })
+      );
+    }
+
+    if (!responseData) {
+      throw new Error('Translation API returned an empty response.');
     }
 
     const translatedText =
@@ -39,7 +52,11 @@ export const translateText = async (text, targetLanguage, sourceLanguage = 'auto
       responseData?.data?.translations?.[0]?.translatedText ||
       responseData?.[0]?.translations?.[0]?.text ||
       responseData?.translatedText ||
-      JSON.stringify(responseData);
+      '';
+
+    if (!translatedText) {
+      throw new Error('Translation API response did not contain translated text.');
+    }
 
     return translatedText;
   } catch (error) {

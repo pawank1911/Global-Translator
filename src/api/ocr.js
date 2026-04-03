@@ -1,11 +1,13 @@
+import { getApiErrorMessage, parseApiResponse } from './response';
+
 const RAPIDAPI_OCR_KEY = import.meta.env.VITE_RAPIDAPI_OCR_KEY;
 const RAPIDAPI_OCR_HOST = import.meta.env.VITE_RAPIDAPI_OCR_HOST;
 const RAPIDAPI_OCR_URL = import.meta.env.VITE_RAPIDAPI_OCR_URL;
 
 export const extractTextFromImage = async (imageFile) => {
   if (!imageFile) return '';
-  if (RAPIDAPI_OCR_KEY === 'ENTER_YOUR_OCR_RAPIDAPI_KEY') {
-    throw new Error('Please configure an OCR API in src/api/ocr.js to use this feature.');
+  if (!RAPIDAPI_OCR_KEY || !RAPIDAPI_OCR_HOST || !RAPIDAPI_OCR_URL) {
+    throw new Error('Please add your OCR RapidAPI settings to your .env file.');
   }
 
   const formData = new FormData();
@@ -21,17 +23,32 @@ export const extractTextFromImage = async (imageFile) => {
       body: formData
     });
 
-    const responseData = await response.json();
+    const { data: responseData, rawBody } = await parseApiResponse(response);
 
     if (!response.ok) {
-      throw new Error(responseData.message || responseData.error || 'OCR API returned an error');
+      throw new Error(
+        getApiErrorMessage({
+          response,
+          data: responseData,
+          rawBody,
+          fallbackMessage: 'OCR API returned an error'
+        })
+      );
+    }
+
+    if (!responseData) {
+      throw new Error('OCR API returned an empty response.');
     }
 
     const extractedText =
       responseData?.ParsedResults?.[0]?.ParsedText ||
       responseData?.text ||
       responseData?.data?.text ||
-      JSON.stringify(responseData);
+      '';
+
+    if (!extractedText) {
+      throw new Error('OCR API response did not contain extracted text.');
+    }
 
     return extractedText;
   } catch (error) {
