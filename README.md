@@ -1,4 +1,6 @@
 # Global Translator
+<img width="956" height="537" alt="image" src="https://github.com/user-attachments/assets/a3722b44-2bd3-43bf-b7c0-d08a966c4f2b" />
+
 
 A beautifully designed, modern web application that allows users to instantly smash language barriers. Built natively with **React JS** and styled using **Tailwind CSS**, this sleek interface offers blazing fast translation utilizing rapid third-party APIs.
 
